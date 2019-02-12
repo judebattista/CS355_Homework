@@ -23,8 +23,48 @@ def findKmers(text, k):
 # Eli Min pointed me to this article on searching strings using tries on Medium.com
 # https://medium.com/basecs/trying-to-understand-tries-3ec6bede0014
 # Assuming a four-letter alphabet, this seems like a potentially ideal solution
+# Conclusion: Works quite nicely for storing kmers!
+#   Unfortunately, not well suited for sorting kmers by frequency
+#   Probably better off using a dictionary
+#   Fun experiment though!
+class trieNode:
+    def __init__(self):
+        self.value = None
+        self.count = 0
+        self.children = {'A':None, 'C':None, 'G':None, 'T':None}
 
+    def dump(self):
+        print(self.count)
+        for key in self.children:
+            print(key)
+            if self.children[key] is not None:
+                self.children[key].dump()
 
+#Naive approach to adding kmers to the trie
+#Should really add the current letter to k tries at the same time
+#TODO: add parallel walk
+def addKmerToTrie(root, kmer):
+    workingNode = root
+    for ntide in kmer:
+        #walk the trie, checking each letter of the kmer
+        #if the letter doesn't exist, create it
+        if workingNode.children[ntide] is None:
+            workingNode.children[ntide] = trieNode()
+        #if the letter does exist, move to it
+        else:
+            workingNode = workingNode.children[ntide]
+    #After the for loop, we should be at the leaf so increment the count
+    workingNode.count += 1
+
+# Any way to do this with a map?
+# Could also use recursion. More fun than a for loop at least.
+def buildTrie(text, k):
+    root = trieNode()
+    numberOfKmers = len(text) - k + 1;
+    for ndx in range(0, numberOfKmers):
+        addKmerToTrie(root, text[ndx:ndx+k])
+    return root
+    
 # Function to print the kmer counts prettily
 # kmerCounts: dictionary with kmer strings as keys and integer counts as values
 # Used W3Schools.com for dictionary functions
@@ -62,6 +102,9 @@ with open('frequentWords.txt') as infile:
     text = infile.readline().strip()
     k = int(infile.readline().strip())
     kmerCounts = sortKmerCountsByCount(findKmers(text, k))
+    # Currently no good way to sort results by frequency, so not using tries
+    #root = buildTrie(text, k)
+    #root.dump()
 
 filename = 'frequentWordsResults.txt'
 writeMostCommonKmers(kmerCounts, filename)
