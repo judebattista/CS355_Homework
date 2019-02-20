@@ -35,4 +35,13 @@ def printComplementDetails(pattern, complements):
 
 complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
 source = "ACCGGGTTTT"
-printComplementDetails(source, complements)    
+printComplementDetails(source, complements)
+
+with open('reverseComplement.txt', 'r') as infile:
+    text = infile.readline().strip()
+    #print(len(text))
+    revComp = mapReverseComp(text, complements)
+    #print(len(revComp))
+with open('reverseComplementResults.txt', 'w') as outfile:
+    outfile.write(revComp)
+

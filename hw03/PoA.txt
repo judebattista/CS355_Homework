@@ -1,0 +1,4 @@
+12:
+	Calculate the skew value at every index
+	Store the index in an associative array at skew value
+	
