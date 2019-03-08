@@ -38,25 +38,16 @@ def scoreMotifs(motifs, profile, alphabet):
     # find the most popular string -> highest value in each column of profile
     rows = len(profile)
     cols = len(profile[0])
-    #print('Working with %d rows and %d cols in our profile' % (rows, cols))
     consensus = []
-    #print('motif:')
-    #print(motifs)
-    #print('profile for scoring motif:')
-    #print(profile)
     for col in range(0, cols):
         maxProb = 0;
         popular = None
         for row in range(0, rows):
-            #print('Comparing maxProb %f with profile[%d][%d] = %f' % (maxProb, row, col, profile[row][col]))
             if profile[row][col] > maxProb:
                 maxProb = profile[row][col]
                 popular = alphabet[row]
-        #print(popular)
         consensus.append(popular)
-        #print(consensus)
     score = 0
-    #print('Consensus string: %s' % consensus)
     for row in motifs:
         score += utilities.hammingDistance(row, consensus)
     return score
@@ -69,6 +60,7 @@ with open('greedyMotifSearch.txt', 'r') as infile:
     for line in infile:
         dna.append(list(line.strip()))
 print(dna)
+
 # form a motif from the first kmers in each fragment
 bestMotifs = []
 for ndx in range(0, numFrags):
@@ -77,6 +69,8 @@ print(bestMotifs)
 profile = buildProfile(kLen, bestMotifs, alphabet)
 bestScore = scoreMotifs(bestMotifs, profile, alphabet)
 print(bestScore)
+
+#build a new set of motifs based around every kmer in the first fragment
 for foo in range(0,len(dna[0]) - kLen + 1):
     motifs = []
     # start the motifs with a kmer from the first dna fragment
@@ -96,5 +90,5 @@ for foo in range(0,len(dna[0]) - kLen + 1):
     print(bestMotifs)        
 
 with open('greedyMotifSearch.results.txt', 'w') as outfile:
-#    outfile.write(mostProbable)
-    False
+    bestMotifStrings = [''.join(item) for item in bestMotifs]
+    utilities.writeListToFileOnNewlines(outfile, bestMotifStrings)

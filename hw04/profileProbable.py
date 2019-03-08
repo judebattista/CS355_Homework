@@ -11,7 +11,7 @@ def fragmentProbability(fragment, matrix):
     return probability
 
 def findMostProbable(text, kLen, matrix):
-    fragments = [dna[foo:foo+kLen] for foo in range(0, len(dna) - kLen + 1)]
+    fragments = [text[foo:foo+kLen] for foo in range(0, len(dna) - kLen + 1)]
     probabilities = {''.join(fragment):fragmentProbability(fragment, matrix) for fragment in fragments}
     return max(probabilities, key=probabilities.get)
 
