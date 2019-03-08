@@ -17,6 +17,7 @@ def findMostProbable(text, kLen, matrix):
     fragments = [text[foo:foo+kLen] for foo in range(0, len(text) - kLen + 1)]
     probabilities = {''.join(fragment):fragmentProbability(fragment, matrix) for fragment in fragments}
     return list(max(probabilities, key=probabilities.get))
+    
 
 # profile will have len(alphabet) rows and kLen cols
 def buildProfile(kLen, motif, alphabet):
@@ -40,7 +41,7 @@ def scoreMotifs(motifs, profile, alphabet):
     cols = len(profile[0])
     consensus = []
     for col in range(0, cols):
-        maxProb = 0;
+        maxProb = 0
         popular = None
         for row in range(0, rows):
             if profile[row][col] > maxProb:
