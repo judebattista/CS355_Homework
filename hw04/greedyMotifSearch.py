@@ -6,10 +6,10 @@ alphabet = ['A','C','G','T']
 
 def fragmentProbability(fragment, matrix):
     kLen = len(fragment)
-    probability = 0
+    probability = 1
     for foo in range(0, kLen):
         nTide = letterToNum[fragment[foo]]
-        probability += matrix[nTide][foo]
+        probability *= matrix[nTide][foo]
     #print('Probability of fragment %s is %f.' % (fragment, probability))
     return probability
 
