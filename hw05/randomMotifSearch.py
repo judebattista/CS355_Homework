@@ -1,5 +1,5 @@
 import itertools
-from random import randrange
+from random import randrange, seed
 import utilities
 
 letterToNum = {'A':0, 'C':1, 'G': 2, 'T':3}
@@ -14,7 +14,7 @@ def fragmentProbability(fragment, matrix):
     #print('Probability of fragment %s is %f.' % (fragment, probability))
     return probability
 
-def findMostProbable(text, kLen, matrix):
+def findMostProbable(kLen, text, matrix):
     fragments = [text[foo:foo+kLen] for foo in range(0, len(text) - kLen + 1)]
     probabilities = {''.join(fragment):fragmentProbability(fragment, matrix) for fragment in fragments}
     #print('----------')
@@ -37,6 +37,9 @@ def buildProfile(kLen, motifs, alphabet):
     percentProfile = list(map(lambda x: list(map(lambda y: y / denom, x)), profile))
     return percentProfile
 
+# Note: This scoring system is bad! Instead, just score the motifs like we scored
+# a set of strings!
+# However, this system does still produce the right results
 # Scores set of motifs based on the hamming distance from a consensus string
 def scoreMotifs(motifs, profile, alphabet):
     # find the most popular string -> highest value in each column of profile
@@ -90,12 +93,12 @@ def chooseRandomMotifs(dna, kLen):
     #print(indices)
     return motifs
 
-def distillMotifs(kLen, motifs, alphabet):
+def distillMotifs(kLen, motifs, dna, alphabet):
     bestMotifs = motifs
-    bestScore = kLen
+    bestScore = kLen * len(motifs)
     while True:
         profile = buildProfile(kLen, motifs, alphabet)
-        motifs = [findMostProbable(motif, kLen, profile) for motif in motifs]
+        motifs = [findMostProbable(kLen, frag, profile) for frag in dna]
         score = scoreMotifs(motifs, profile, alphabet)
         if score < bestScore:
             bestScore = score
@@ -115,20 +118,22 @@ def run(iterations, alphabet):
     #print(dna)
 
     # form a motif from random kmers in each fragment
-    bestMotifs = chooseRandomMotifs(dna, kLen)
-    initialProfile = buildProfile(kLen, bestMotifs, alphabet)
+    #bestMotifs = chooseRandomMotifs(dna, kLen)
+    #initialProfile = buildProfile(kLen, bestMotifs, alphabet)
     #bestScore = scoreMotifsPercentile(bestMotifs, initialProfile, alphabet)
-    bestScore = scoreMotifs(bestMotifs, initialProfile, alphabet)
-    #bestScore = kLen
-
+    #bestScore = scoreMotifs(bestMotifs, initialProfile, alphabet)
+    bestScore = kLen * numFrags
+    bestMotifs = []
     #print(bestScore)
 
     # pick random kmers from each fragment iterations times
     # Then distill the kmers to their 'best' motifs
     # if the 'best' motifs beat the best score, use them as our new baseline
     for ndx in range(0, iterations):
+        if ndx % 1000 == 0:
+            seed()
         seedMotifs = chooseRandomMotifs(dna, kLen)
-        localBestScore, localBestMotifs = distillMotifs(kLen, seedMotifs, alphabet)
+        localBestScore, localBestMotifs = distillMotifs(kLen, seedMotifs, dna, alphabet)
         if localBestScore < bestScore:
             bestScore = localBestScore
             bestMotifs = localBestMotifs
@@ -138,4 +143,4 @@ def run(iterations, alphabet):
         utilities.writeListToFileOnNewlines(outfile, bestMotifStrings)
 
 # Run the program
-run(10000, alphabet)
+run(1000, alphabet)
