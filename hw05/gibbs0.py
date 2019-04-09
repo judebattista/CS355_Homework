@@ -5,30 +5,24 @@ import utilities
 letterToNum = {'A':0, 'C':1, 'G': 2, 'T':3}
 alphabet = ['A','C','G','T']
 
-def fragmentProbability(fragment, matrix):
-    kLen = len(fragment)
-    probability = 1
-    for foo in range(0, kLen):
-        nTide = letterToNum[fragment[foo]]
-        probability *= matrix[nTide][foo]
-    #print('Probability of fragment %s is %f.' % (fragment, probability))
-    return probability
+def scoreKmerWithProfile(kmer, profile, alphabet):
+    score = 0
+    for ndx in range(0, len(kmer)):
+        letter = kmer[ndx]
+        letterRow = letterToNum[letter]
+        letterScore = profile[letterRow][ndx]
+        score += letterScore
+    return score
 
-def findMostProbable(matrix, alphabet):
-    rows = len(matrix)
-    cols = len(matrix[0])
-    newFrag = []
-    for col in range(cols):
-        maxColValue = 0
-        maxRow = 0
-        # in a given column, find out which row has the highest probability
-        for row in range(rows):
-            if matrix[row][col] > maxColValue:
-                maxColValue = matrix[row][col]
-                maxRow = row
-        # when we get the highest probability, append the corresponding letter to our kmer
-        newFrag.append(alphabet[maxRow])
-    return newFrag
+def findMostProbable(testKmers, profile, alphabet):
+    bestKmer = ''
+    bestScore = -1
+    for kmer in testKmers:
+        score = scoreKmerWithProfile(kmer, profile, alphabet)
+        if score > bestScore:
+            bestScore = score
+            bestKmer = kmer
+    return bestKmer
 
 # profile will have len(alphabet) rows and kLen cols
 def buildProfile(kLen, motifs, alphabet):
@@ -105,13 +99,20 @@ def chooseRandomMotifs(dna, kLen):
 
 def gibbs(kLen, motifs, alphabet):
     numFrags = len(motifs)
-    fragToReplace = randrange(numFrags)
-    newMotifs = motifs
-    del newMotifs[fragToReplace]
+    ndxToReplace = randrange(numFrags)
+    fragToReplace = motifs[ndxToReplace]
+
+    #choose random kmers from each motif
+    seedMotifs = chooseRandomMotifs(motifs, kLen)
+    newMotifs = seedMotifs
+    testKmers = [fragToReplace[ndx : ndx+kLen] for ndx in range(0, len(fragToReplace) - kLen + 1)]
+
+    del newMotifs[ndxToReplace]
     profile = buildProfile(kLen, newMotifs, alphabet)
-    newFrag = findMostProbable(profile, alphabet)
-    newMotifs.insert(fragToReplace, newFrag)
-    score = scoreMotifs(newMotifs, profile, alphabet)
+    newFrag = findMostProbable(testKmers, profile, alphabet)
+    newMotifs.insert(ndxToReplace, newFrag)
+    scoreProfile = buildProfile(kLen, newMotifs, alphabet)
+    score = scoreMotifs(newMotifs, scoreProfile, alphabet)
     return newMotifs, score
              
 
@@ -129,21 +130,18 @@ def run(alphabet):
     
     # form a motif from random kmers in each fragment
     #bestMotifs = chooseRandomMotifs(dna, kLen)
-    #initialProfile = buildProfile(kLen, bestMotifs, alphabet)
-    #bestScore = scoreMotifsPercentile(bestMotifs, initialProfile, alphabet)
-    #bestScore = scoreMotifs(bestMotifs, initialProfile, alphabet)
     bestScore = kLen * numFrags
     bestMotifs = []
     #print(bestScore)
-
+    
+    iterations = 100000
     # pick random kmers from each fragment iterations times
     # Then distill the kmers to their 'best' motifs
     # if the 'best' motifs beat the best score, use them as our new baseline
     for ndx in range(0, iterations):
         if ndx % 1000 == 0:
             seed()
-        seedMotifs = chooseRandomMotifs(dna, kLen)
-        newMotifs, newScore = gibbs(kLen, seedMotifs, alphabet)
+        newMotifs, newScore = gibbs(kLen, dna, alphabet)
         if newScore < bestScore:
             bestScore = newScore
             bestMotifs = newMotifs
