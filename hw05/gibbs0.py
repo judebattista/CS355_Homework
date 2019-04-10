@@ -1,5 +1,5 @@
 import itertools
-from random import randrange, seed
+from random import randrange, seed, uniform
 import utilities
 
 letterToNum = {'A':0, 'C':1, 'G': 2, 'T':3}
@@ -24,6 +24,27 @@ def findMostProbable(testKmers, profile, alphabet):
             bestKmer = kmer
     return bestKmer
 
+
+def pickKmer(testKmers, profile, alphabet):
+    # running total of the score
+    totalScore = 0
+    kmerCount = len(testKmers)
+    # we are interested in tracking the total score, no individual scores
+    runningScores = []
+    for kmer in testKmers:
+        totalScore += scoreKmerWithProfile(kmer, profile, alphabet)
+        runningScores.append(totalScore)
+    print(runningScores)
+    roll = uniform(0, runningScores[kmerCount - 1])
+    print(roll)
+    kmerScore = runningScores[0]
+    ndx = 0
+    while kmerScore < roll:
+        ndx += 1
+        kmerScore = runningScores[ndx]
+    print(ndx, testKmers)
+    return testKmers[ndx]
+
 # profile will have len(alphabet) rows and kLen cols
 def buildProfile(kLen, motifs, alphabet):
     # The denominator for every fraction in our profile should be the number of rows in our set of motifs + 1 for every letter of our alphabet.
@@ -45,7 +66,7 @@ def buildProfile(kLen, motifs, alphabet):
 # a set of strings!
 # However, this system does still produce the right results
 # Scores set of motifs based on the hamming distance from a consensus string
-def scoreMotifs(motifs, profile, alphabet):
+def scoreMotifsiWithProfile(motifs, profile, alphabet):
     # find the most popular string -> highest value in each column of profile
     rows = len(profile)
     cols = len(profile[0])
@@ -62,6 +83,29 @@ def scoreMotifs(motifs, profile, alphabet):
     for row in motifs:
         score += utilities.hammingDistance(row, consensus)
     return score
+# make counts column-major
+def scoreMotifs(motifs, alphabet):
+    numChars = len(alphabet)
+    numMotifs = len(motifs)
+    lenMotif = len(motifs[0])
+    counts = []
+    # set counts to zero
+    for ndx in range(0, lenMotif):
+        counts.append([0]* numCharsOB)
+    # count each character in motifs
+    for row in range(0, numMotifs)
+        for col in range(0, lenMotif):
+            nTide = motifs[row][col]
+            countsRow = letterToNum[nTide]
+            counts[col][countsRow] += 1
+    print(motifs)
+    print(counts)
+    score = 0
+    for col in range(0, numMotifs):
+        colMax = max(count[col])
+        colScore = numMotifs - colMax
+        score += colScore
+
 
 
 # Score a set of motifs based on the probability of the consensus string
@@ -109,7 +153,7 @@ def gibbs(kLen, motifs, alphabet):
 
     del newMotifs[ndxToReplace]
     profile = buildProfile(kLen, newMotifs, alphabet)
-    newFrag = findMostProbable(testKmers, profile, alphabet)
+    newFrag = pickKmer(testKmers, profile, alphabet)
     newMotifs.insert(ndxToReplace, newFrag)
     scoreProfile = buildProfile(kLen, newMotifs, alphabet)
     score = scoreMotifs(newMotifs, scoreProfile, alphabet)
@@ -134,7 +178,7 @@ def run(alphabet):
     bestMotifs = []
     #print(bestScore)
     
-    iterations = 100000
+    iterations = 2000
     # pick random kmers from each fragment iterations times
     # Then distill the kmers to their 'best' motifs
     # if the 'best' motifs beat the best score, use them as our new baseline
