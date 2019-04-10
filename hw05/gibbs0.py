@@ -34,15 +34,15 @@ def pickKmer(testKmers, profile, alphabet):
     for kmer in testKmers:
         totalScore += scoreKmerWithProfile(kmer, profile, alphabet)
         runningScores.append(totalScore)
-    print(runningScores)
+    #print(runningScores)
     roll = uniform(0, runningScores[kmerCount - 1])
-    print(roll)
+    #print(roll)
     kmerScore = runningScores[0]
     ndx = 0
     while kmerScore < roll:
         ndx += 1
         kmerScore = runningScores[ndx]
-    print(ndx, testKmers)
+    #print(ndx, testKmers)
     return testKmers[ndx]
 
 # profile will have len(alphabet) rows and kLen cols
@@ -62,27 +62,8 @@ def buildProfile(kLen, motifs, alphabet):
     percentProfile = list(map(lambda x: list(map(lambda y: y / denom, x)), profile))
     return percentProfile
 
-# Note: This scoring system is bad! Instead, just score the motifs like we scored
-# a set of strings!
-# However, this system does still produce the right results
-# Scores set of motifs based on the hamming distance from a consensus string
-def scoreMotifsiWithProfile(motifs, profile, alphabet):
-    # find the most popular string -> highest value in each column of profile
-    rows = len(profile)
-    cols = len(profile[0])
-    consensus = []
-    for col in range(0, cols):
-        maxProb = 0
-        popular = None
-        for row in range(0, rows):
-            if profile[row][col] > maxProb:
-                maxProb = profile[row][col]
-                popular = alphabet[row]
-        consensus.append(popular)
-    score = 0
-    for row in motifs:
-        score += utilities.hammingDistance(row, consensus)
-    return score
+# Score motifs based on difference from most common string
+# low scores are good.
 # make counts column-major
 def scoreMotifs(motifs, alphabet):
     numChars = len(alphabet)
@@ -91,39 +72,23 @@ def scoreMotifs(motifs, alphabet):
     counts = []
     # set counts to zero
     for ndx in range(0, lenMotif):
-        counts.append([0]* numCharsOB)
+        counts.append([0]* numChars)
     # count each character in motifs
-    for row in range(0, numMotifs)
+    for row in range(0, numMotifs):
         for col in range(0, lenMotif):
             nTide = motifs[row][col]
             countsRow = letterToNum[nTide]
             counts[col][countsRow] += 1
-    print(motifs)
-    print(counts)
+    #print(motifs)
+    #print(counts)
     score = 0
-    for col in range(0, numMotifs):
-        colMax = max(count[col])
+    for col in range(0, lenMotif):
+        colMax = max(counts[col])
         colScore = numMotifs - colMax
         score += colScore
-
-
-
-# Score a set of motifs based on the probability of the consensus string
-def scoreMotifsPercentile(motifs, profile, alphabet):
-    # find the consensus string
-    rows = len(profile)
-    cols = len(profile[0])
-    consensus = []
-    score = 1.0
-    for col in range(0, cols):
-        maxProb = 0
-        popular = None
-        for row in range(0, rows):
-            if profile[row][col] > maxProb:
-                maxProb = profile[row][col]
-                popular = alphabet[row]
-        consensus.append(popular)
-        score = score * profile[letterToNum[popular]][col]
+    #for motif in motifs:
+    #    print(motif)
+    print(score)
     return score
 
 def chooseRandomMotifs(dna, kLen):
@@ -141,23 +106,30 @@ def chooseRandomMotifs(dna, kLen):
     #print(indices)
     return motifs
 
-def gibbs(kLen, motifs, alphabet):
+def gibbs(kLen, motifs, alphabet, iterations):
     numFrags = len(motifs)
-    ndxToReplace = randrange(numFrags)
-    fragToReplace = motifs[ndxToReplace]
+    fragLen = len(motifs[0])
+    bestScore = numFrags * fragLen
+    bestMotifs = []
+    for ndx in range(0, iterations):
+        ndxToReplace = randrange(numFrags)
+        fragToReplace = motifs[ndxToReplace]
 
-    #choose random kmers from each motif
-    seedMotifs = chooseRandomMotifs(motifs, kLen)
-    newMotifs = seedMotifs
-    testKmers = [fragToReplace[ndx : ndx+kLen] for ndx in range(0, len(fragToReplace) - kLen + 1)]
+        #choose random kmers from each motif
+        seedMotifs = chooseRandomMotifs(motifs, kLen)
+        newMotifs = seedMotifs
+        testKmers = [fragToReplace[ndx : ndx+kLen] for ndx in range(0, fragLen - kLen + 1)]
 
-    del newMotifs[ndxToReplace]
-    profile = buildProfile(kLen, newMotifs, alphabet)
-    newFrag = pickKmer(testKmers, profile, alphabet)
-    newMotifs.insert(ndxToReplace, newFrag)
-    scoreProfile = buildProfile(kLen, newMotifs, alphabet)
-    score = scoreMotifs(newMotifs, scoreProfile, alphabet)
-    return newMotifs, score
+        del newMotifs[ndxToReplace]
+        profile = buildProfile(kLen, newMotifs, alphabet)
+        newFrag = pickKmer(testKmers, profile, alphabet)
+        newMotifs.insert(ndxToReplace, newFrag)
+        scoreProfile = buildProfile(kLen, newMotifs, alphabet)
+        score = scoreMotifs(newMotifs, alphabet)
+        if score < bestScore:
+            bestScore = score
+            bestMotifs = newMotifs
+    return bestMotifs, bestScore
              
 
 def run(alphabet):
@@ -169,27 +141,26 @@ def run(alphabet):
         dna = []
         for line in infile:
             dna.append(list(line.strip()))
+    iterationsPerStartingPoint = 1
     #print(kLen, numFrags, iterations) 
     #print(dna)
     
-    # form a motif from random kmers in each fragment
-    #bestMotifs = chooseRandomMotifs(dna, kLen)
     bestScore = kLen * numFrags
     bestMotifs = []
     #print(bestScore)
     
-    iterations = 2000
-    # pick random kmers from each fragment iterations times
-    # Then distill the kmers to their 'best' motifs
-    # if the 'best' motifs beat the best score, use them as our new baseline
+    #iterations = 10000
+    #iterations *= 10
+    iterations *= 50
     for ndx in range(0, iterations):
+        print('----Run %d----' % ndx)
         if ndx % 1000 == 0:
             seed()
-        newMotifs, newScore = gibbs(kLen, dna, alphabet)
+        newMotifs, newScore = gibbs(kLen, dna, alphabet, iterationsPerStartingPoint)
         if newScore < bestScore:
             bestScore = newScore
             bestMotifs = newMotifs
-
+    print('Best score: ', bestScore)
     with open('gibbs.results.txt', 'w') as outfile:
         bestMotifStrings = [''.join(item) for item in bestMotifs]
         utilities.writeListToFileOnNewlines(outfile, bestMotifStrings)
