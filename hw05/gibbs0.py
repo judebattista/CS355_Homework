@@ -1,6 +1,8 @@
 import itertools
 from random import randrange, seed, uniform
+import time
 import utilities
+
 
 letterToNum = {'A':0, 'C':1, 'G': 2, 'T':3}
 alphabet = ['A','C','G','T']
@@ -29,7 +31,7 @@ def pickKmer(testKmers, profile, alphabet):
     # running total of the score
     totalScore = 0
     kmerCount = len(testKmers)
-    # we are interested in tracking the total score, no individual scores
+    # we are interested in tracking the total score, not individual scores
     runningScores = []
     for kmer in testKmers:
         totalScore += scoreKmerWithProfile(kmer, profile, alphabet)
@@ -43,7 +45,7 @@ def pickKmer(testKmers, profile, alphabet):
         ndx += 1
         kmerScore = runningScores[ndx]
     #print(ndx, testKmers)
-    return testKmers[ndx]
+    return testKmers[ndx - 1]
 
 # profile will have len(alphabet) rows and kLen cols
 def buildProfile(kLen, motifs, alphabet):
@@ -88,7 +90,7 @@ def scoreMotifs(motifs, alphabet):
         score += colScore
     #for motif in motifs:
     #    print(motif)
-    print(score)
+    #print(score)
     return score
 
 def chooseRandomMotifs(dna, kLen):
@@ -109,27 +111,32 @@ def chooseRandomMotifs(dna, kLen):
 def gibbs(kLen, motifs, alphabet, iterations):
     numFrags = len(motifs)
     fragLen = len(motifs[0])
-    bestScore = numFrags * fragLen
     bestMotifs = []
-    for ndx in range(0, iterations):
-        ndxToReplace = randrange(numFrags)
-        fragToReplace = motifs[ndxToReplace]
+    
+    #choose random kmers from each motif as a starting point
+    seedMotifs = chooseRandomMotifs(motifs, kLen)
+    newMotifs = seedMotifs
+    bestScore = scoreMotifs(seedMotifs, alphabet)
+    startingScore = bestScore
+    
+    # iterate over our set of seed motifs
+    #if startingScore < int(numFrags / 2) * fragLen:
+    if True:
+        for ndx in range(0, iterations):
+            ndxToReplace = randrange(numFrags)
+            fragToReplace = motifs[ndxToReplace]
 
-        #choose random kmers from each motif
-        seedMotifs = chooseRandomMotifs(motifs, kLen)
-        newMotifs = seedMotifs
-        testKmers = [fragToReplace[ndx : ndx+kLen] for ndx in range(0, fragLen - kLen + 1)]
+            testKmers = [fragToReplace[ndx : ndx+kLen] for ndx in range(0, fragLen - kLen + 1)]
 
-        del newMotifs[ndxToReplace]
-        profile = buildProfile(kLen, newMotifs, alphabet)
-        newFrag = pickKmer(testKmers, profile, alphabet)
-        newMotifs.insert(ndxToReplace, newFrag)
-        scoreProfile = buildProfile(kLen, newMotifs, alphabet)
-        score = scoreMotifs(newMotifs, alphabet)
-        if score < bestScore:
-            bestScore = score
-            bestMotifs = newMotifs
-    return bestMotifs, bestScore
+            del newMotifs[ndxToReplace]
+            profile = buildProfile(kLen, newMotifs, alphabet)
+            newFrag = pickKmer(testKmers, profile, alphabet)
+            newMotifs.insert(ndxToReplace, newFrag)
+            score = scoreMotifs(newMotifs, alphabet)
+            if score < bestScore:
+                bestScore = score
+                bestMotifs = newMotifs
+    return bestMotifs, bestScore, startingScore
              
 
 def run(alphabet):
@@ -141,29 +148,35 @@ def run(alphabet):
         dna = []
         for line in infile:
             dna.append(list(line.strip()))
-    iterationsPerStartingPoint = 1
     #print(kLen, numFrags, iterations) 
     #print(dna)
     
     bestScore = kLen * numFrags
     bestMotifs = []
+    startingScoreForBest = bestScore 
     #print(bestScore)
     
-    #iterations = 10000
+    iterationsPerStartingPoint = 5 
+    iterations = 50000
     #iterations *= 10
-    iterations *= 50
+    #iterations *= 50
+    startTime = time.clock()
     for ndx in range(0, iterations):
-        print('----Run %d----' % ndx)
+        #print('----Run %d----' % ndx)
         if ndx % 1000 == 0:
             seed()
-        newMotifs, newScore = gibbs(kLen, dna, alphabet, iterationsPerStartingPoint)
+        newMotifs, newScore, startingScore = gibbs(kLen, dna, alphabet, iterationsPerStartingPoint)
         if newScore < bestScore:
             bestScore = newScore
             bestMotifs = newMotifs
-    print('Best score: ', bestScore)
+            startingScoreForBest = startingScore
+    print('Best score: ', bestScore, '. Starting score: ', startingScoreForBest)
+    endTime = time.clock()
+    print('Time elapsed: ', endTime - startTime)
     with open('gibbs.results.txt', 'w') as outfile:
         bestMotifStrings = [''.join(item) for item in bestMotifs]
         utilities.writeListToFileOnNewlines(outfile, bestMotifStrings)
+    
 
 # Run the program
 run(alphabet)
