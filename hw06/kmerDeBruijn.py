@@ -22,7 +22,7 @@ def run():
     with open('kmerDeBruijn.txt', 'r') as infile:
         frags = []
         for line in infile:
-            frags.append(infile.readline().strip())
+            frags.append(line.strip())
     kLen = len(frags[0])
     print(kLen, frags)
     edges = {}
