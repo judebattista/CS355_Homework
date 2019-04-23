@@ -17,15 +17,25 @@ with open('euCycle.txt', 'r') as infile:
 keys = edges.keys()
 maxKey = max(keys)
 minKey = min(keys)
+keyRange = maxKey - minKey
+path = []
 startNode = randrange(minKey, maxKey + 1)
-nextNode = startNode + 1
+path.append(startNode)
+nextNode = (startNode + 1) % keyRange
 workingCopy = copy.deepcopy(edges)
+currentNode = startNode
 print(workingCopy)
+print(startNode)
 adjacentNodes = workingCopy[startNode]
-if len(adjacentNodes) > 0:
+print(adjacentNodes)
+while len(adjacentNodes) > 0:
     nextNode = adjacentNodes[0]
+    path.append(nextNode)
+    print(path)
     del adjacentNodes[0]
-    
-
+    adjacentNodes = workingCopy[nextNode]
+print(adjacentNodes)     
+print(workingCopy)
+print(path)
 with open('euCycle.results.txt', 'w') as outfile:
     pass
