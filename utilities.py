@@ -10,6 +10,12 @@ def incrementDict(dictionary, key):
     else:
         dictionary[key] = 1
 
+def decrementDict(dictionary, key):
+    if key in dictionary:
+        dictionary[key] -= 1
+    else:
+        dictionary[key] = -1
+
 def writeListToFile(outfile, data):
     outfile.write(' '.join(map(lambda value: str(value), data)))
 

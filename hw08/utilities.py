@@ -14,7 +14,7 @@ def decrementDict(dictionary, key):
     if key in dictionary:
         dictionary[key] -= 1
     else:
-        dictionary[key] = 0
+        dictionary[key] = -1
 
 def writeListToFile(outfile, data):
     outfile.write(' '.join(map(lambda value: str(value), data)))
@@ -31,7 +31,6 @@ def readIntListFromFile(infile):
 def hammingDistance(text0, text1):
     return sum([ntide0 != ntide1 for ntide0, ntide1 in zip(text0, text1)])
 
-#requires itertools
 def genCousinsOfD(kmer, alphabet, distance):
     # Generate all the possible locations for replacement
     for positions in combinations(range(len(kmer)), distance):

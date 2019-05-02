@@ -13,62 +13,67 @@ def pickRandomChild(children):
         return 0
     return randrange(maxKid)
 
-def buildCycle(graph, nextNode):
-    path = []
-    adjacentNodes = workingCopy[nextNode]
+def findEndNodes(degrees):
+    startNode = 0
+    endNode = 0
+    for node in degrees.keys():
+        if degrees[node] == -1:
+            startNode = node
+        if degrees[node] == 1:
+            endNode = node
+    return startNode, endNode
 
-    # Create the initial cycle
-    while len(workingCopy[nextNode]) > 0:
-        currentNode = nextNode
-        path.append(currentNode)
-        adjacentNodes = workingCopy[currentNode]
-        randomChild = pickRandomChild(adjacentNodes)  
-        nextNode = adjacentNodes[randomChild]
-        del adjacentNodes[randomChild]
-    # once we run out of nodes to append to the main cycle we should be back at the 
-    # starting node
-    path.append(nextNode)
-    return path
 
 with open('euPath.txt', 'r') as infile:
     edges = {}
+    revEdges = {}
+    degrees = {}
     for line in infile:
         splitLine = re.split('->', line.strip())
-        key = splitLine[0].strip() 
+        key = int(splitLine[0].strip()) 
         vals = re.split(',', splitLine[1].strip())
         #print(splitLine, key, vals)
         for val in vals:
-            utilities.appendToDict(edges, int(key), int(val))
-    print(edges)
+            intVal = int(val)
+            if intVal not in edges:
+                edges[intVal] = []
+            utilities.decrementDict(degrees, key)
+            utilities.appendToDict(edges, key, intVal)
+            utilities.appendToDict(revEdges, intVal, key)
+            utilities.incrementDict(degrees, intVal)
+    print('Degrees: {0}'.format(degrees))
 
 workingCopy = copy.deepcopy(edges)
-nextNode = choice(list(workingCopy.keys()))
-adjacentNodes = workingCopy[nextNode]
+print('Edges: {0}'.format(workingCopy))
 
-# create the initial cycle:
-path = buildCycle(workingCopy, nextNode)
+startNode, endNode = findEndNodes(degrees)
+print('Start node: {0}, end node: {1}'.format(startNode, endNode))
+path = []
+stack = []
+currentNode = startNode
+neighbors = workingCopy[currentNode]
+while len(neighbors) > 0 or len(stack) > 0:
+    #neighbors = workingCopy[currentNode]
+    if len(neighbors) > 0: # add to stack, pick neighbor, remove edge, neighbor = current
+        stack.append(currentNode)
+        childNdx = pickRandomChild(neighbors)
+        nextNode = neighbors[childNdx]
+        print('Removing {0} from {1}'.format(nextNode, neighbors))
+        workingCopy[currentNode].remove(nextNode)
+        currentNode = nextNode
+    else:   # No neighbors: add to path, remove last item from stack and set as current node
+        path.append(currentNode)
+        currentNode = stack.pop(-1)
+    neighbors = workingCopy[currentNode]
+    print('Path: {0}'.format(path))
+    print('Stack: {0}'.format(stack))
+    print('Current node: {0}, neighbors: {1}'.format(currentNode, neighbors))
 
-edgeCount = 0
-for item in edges.items():
-    edgeCount += len(item[1])
+path.append(currentNode)
+path = path[::-1]
+print('Final path: {0}'.format(path))
 
-# find epicycles
-# walk the path to find a node that has a 
-for ndx in range(0, edgeCount+1):
-    # if a node in the cycle has an unexplored edge...
-    print('ndx = {0}, path len = {1}'.format(ndx, len(path)))
-    node = path[ndx]
-    if len(workingCopy[node]) > 0:
-        # build a cycle starting from node
-        subPath = buildCycle(workingCopy, node)
-        path = path[0:ndx] + subPath + path[ndx+1:]
-        
 
-#print(adjacentNodes)     
-#print("Working copy: ", workingCopy)
-#print(path)
-#printEdges(path)
-print('Edges in graph: {0}, edges in path: {1}'.format(edgeCount, len(path)-1))
 with open('euPath.results.txt', 'w') as outfile:
     strPath = [str(item) for item in path]
     output = '->'.join(strPath)
