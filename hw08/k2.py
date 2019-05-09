@@ -3,6 +3,20 @@ import copy
 import itertools as it
 from random import randrange, seed, choice
 
+# build dictionaries containing the prefix and suffix values associated with
+# each middle substring
+def constructEdges(kLen, frags):
+    edges = {}
+    for ndx in range(0, len(frags)):
+        key = frags[ndx][0:kLen - 1]
+        val = frags[ndx][1:kLen]
+        utilities.appendToDict(edges, key, val)
+    return edges
+
+def constructGraph(edges):
+    graph = [(k, v) for k, v in edges.items()]
+    return graph
+
 def printEdges(path):
     for ndx in range(0, len(path) - 1):
         print(str(path[ndx]) + ' -> ' + str(path[ndx+1])) 
@@ -66,57 +80,26 @@ def printEdges(dictionary):
     for key in dictionary.keys():
         print('{0} -> {1}'.format(key, dictionary[key]))
 
-edges = {}
+kmers = []
 with open('kUniversal.txt', 'r') as infile:
     kLen = int(infile.readline().strip())
     alphabet = ['0', '1']
-    #edges = {}
-    degrees = {}
     lex = it.product(alphabet, repeat=kLen)
     # note: iterating over lex destroys it
     #for item in lex:
         #print(item)
     for kmer in lex:
-        key = kmer[0:kLen-1]
-        val = kmer[1:kLen]
-        if (val != key):
-            utilities.appendToDict(edges, key, val)
-        if val not in edges:
-            edges[val] = []
-        utilities.decrementDict(degrees, key)
-        utilities.incrementDict(degrees, val)
-    print('edges: {0}'.format(edges))
+        kmers.append(kmer) 
     
-    #printEdges(edges)
+edges = constructEdges(kLen, kmers)
+graph = constructGraph(edges)
+print(graph[0])
 
-print('edges: {0}'.format(edges))
-workingCopy = copy.deepcopy(edges)
-print('workingCopy: {0}'.format(workingCopy))
-nextNode = choice(list(workingCopy.keys()))
-#nextNode = ('0','0','0','0','0','0','0','0')
-adjacentNodes = workingCopy[nextNode]
-
-# create the initial cycle:
-path = buildCycle(workingCopy, nextNode)
-
-#edgeCount = 0
-#for item in edges.items():
-#    edgeCount += len(item[1])
 
 edgeCount = 2**kLen - kLen
 
-#print('path: {0}'.format(path))
-print('Edges in graph: {0}, edges in path: {1}'.format(edgeCount, len(path)-1))
-path = findEpicycles(workingCopy, edgeCount, path)
-
-#print(adjacentNodes)     
-#print("Working copy: ", workingCopy)
-#printEdges(path)
-print('Edges in graph: {0}, edges in path: {1}'.format(edgeCount, len(path)-1))
-output = buildStringFromPath(path)
-
-print(output)
 with open('kUniversal.results.txt', 'w') as outfile:
     #strPath = [str(item) for item in path]
     #output = '->'.join(strPath)
-    outfile.write(output)
+    #outfile.write(output)
+    pass
