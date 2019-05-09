@@ -41,7 +41,7 @@ def buildCycle(graph, nextNode):
 
 # find epicycles
 # walk the path to find a nodes that have unexplored edges
-def findEpicycles(workingCopy, edgeCount):
+def findEpicycles(workingCopy, edgeCount, path):
     print('Edge count: {0}'.format(edgeCount))
     for ndx in range(0, edgeCount+1):
         # if a node in the cycle has an unexplored edge...
@@ -52,6 +52,7 @@ def findEpicycles(workingCopy, edgeCount):
             # build a cycle starting from node
             subPath = buildCycle(workingCopy, node)
             path = path[0:ndx] + subPath + path[ndx+1:]
+    return path
 
 def buildStringFromPath(path):
     stringArr = []
@@ -61,24 +62,32 @@ def buildStringFromPath(path):
     print(stringArr)
     return ''.join(stringArr)
 
+def printEdges(dictionary):
+    for key in dictionary.keys():
+        print('{0} -> {1}'.format(key, dictionary[key]))
+
 with open('kUniversal.txt', 'r') as infile:
     kLen = int(infile.readline().strip())
     alphabet = ['0', '1']
     edges = {}
     degrees = {}
     lex = it.product(alphabet, repeat=kLen)
+    for item in lex:
+        print(item)
     for kmer in lex:
         key = kmer[0:kLen-1]
         val = kmer[1:kLen]
-        utilities.appendToDict(edges, key, val)
+        if (val != key):
+            utilities.appendToDict(edges, key, val)
         if val not in edges:
             edges[val] = []
         utilities.decrementDict(degrees, key)
         utilities.incrementDict(degrees, val)
-    print('edges: {0}'.format(edges))
+    printEdges(edges)
 
 workingCopy = copy.deepcopy(edges)
 nextNode = choice(list(workingCopy.keys()))
+#nextNode = ('0','0','0','0','0','0','0','0')
 adjacentNodes = workingCopy[nextNode]
 
 # create the initial cycle:
@@ -88,16 +97,18 @@ edgeCount = 0
 for item in edges.items():
     edgeCount += len(item[1])
 
-        
+#print('path: {0}'.format(path))
+print('Edges in graph: {0}, edges in path: {1}'.format(edgeCount, len(path)-1))
+path = findEpicycles(workingCopy, edgeCount, path)
 
 #print(adjacentNodes)     
 #print("Working copy: ", workingCopy)
 #printEdges(path)
-print('path: {0}'.format(path))
 print('Edges in graph: {0}, edges in path: {1}'.format(edgeCount, len(path)-1))
 output = buildStringFromPath(path)
+
 print(output)
 with open('kUniversal.results.txt', 'w') as outfile:
-    strPath = [str(item) for item in path]
-    output = '->'.join(strPath)
+    #strPath = [str(item) for item in path]
+    #output = '->'.join(strPath)
     outfile.write(output)
