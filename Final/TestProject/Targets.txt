@@ -1,0 +1,7 @@
+CellType	Filename1	Filename2	OutputFile
+FRK1	../PutzkeData/frk_1_sample_1/concatenated_fastqs/Sample_mutant-1.concatenated.R1.fastq.gz	../PutzkeData/frk_1_sample_1/concatenated_fastqs/Sample_mutant-1.concatenated.R2.fastq.gz	frk1.bam
+FRK2	../PutzkeData/frk_1_sample_2/fastq/frk1-2_ATTCAGAA-GGCTCTGA_AC9FN5ANXX_L008_001.R1.fastq.gz	../PutzkeData/frk_1_sample_2/fastq/frk1-2_ATTCAGAA-GGCTCTGA_AC9FN5ANXX_L008_001.R2.fastq.gz	frk2.bam
+FRK3	../PutzkeData/frk_1_sample_3/concatenated_fastqs/Sample_mutant-2.concatenated.R1.fastq.gz	../PutzkeData/frk_1_sample_3/concatenated_fastqs/Sample_mutant-2.concatenated.R2.fastq.gz	frk3.bam
+WT1	../PutzkeData/WT_sample_1/concatenated_fastqs/Sample_wildtype-1.concatenated.R1.fastq.gz	../PutzkeData/WT_sample_1/concatenated_fastqs/Sample_wildtype-1.concatenated.R2.fastq.gz	wt1.bam
+WT2	../PutzkeData/WT_sample_2/fastq/wildtype-2_TCTCGCGC-GGCTCTGA_AC9FN5ANXX_L008_001.R1.fastq.gz	../PutzkeData/WT_sample_2/fastq/wildtype-2_TCTCGCGC-GGCTCTGA_AC9FN5ANXX_L008_001.R2.fastq.gz	wt2.bam
+WT3	../PutzkeData/WT_sample_3/concatenated_fastqs/Sample_wildtype-3.concatenated.R1.fastq.gz	../PutzkeData/WT_sample_3/concatenated_fastqs/Sample_wildtype-3.concatenated.R2.fastq.gz	wt3.bam

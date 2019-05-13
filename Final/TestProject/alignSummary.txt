@@ -1,0 +1,22 @@
+//================================   Summary =================================\\
+||                                                                            ||
+||             Total fragments : 12,882,453                                   ||
+||                      Mapped : 12,111,346 (94.0%)                           ||
+||             Uniquely mapped : 12,111,346                                   ||
+||               Multi-mapping : 0                                            ||
+||                                                                            ||
+||                    Unmapped : 771,107                                      ||
+||                                                                            ||
+||             Properly paired : 9,079,086                                    ||
+||         Not properly paired : 3,032,260                                    ||
+||                   Singleton : 601,774                                      ||
+||                    Chimeric : 8,928                                        ||
+||       Unexpected strandness : 3,030                                        ||
+||  Unexpected fragment length : 2,366,936                                    ||
+||       Unexpected read order : 51,592                                       ||
+||                                                                            ||
+||                      Indels : 87,239                                       ||
+||                                                                            ||
+||                Running time : 14.2 minutes                                 ||
+||                                                                            ||
+\\============================================================================//

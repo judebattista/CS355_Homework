@@ -1,0 +1,235 @@
+# Start a linux terminal start R as administrator
+source("https://bioconductor.org/biocLite.R")
+biocLite("Rsubread")
+browseVignettes("Rsubread")
+
+
+getwd()
+setwd("./Desktop")
+setwd("./Protocol")
+
+# next step was to download celegans dna from the the internet then build an index for it
+buildindex( basename="celegans_index", reference="./Caenorhabditis_elegans.WBcel215.67.dna.chromosome.I.fa" )
+
+#Next I made a Targets.txt file with the list of files to process:
+CellType	Filename1	Filename2	OutputFile
+FRK1	./PutzkeData/frk_1_sample_1/concatenated_fastqs/Sample_mutant-1.concatenated.R1.fastq.gz	./PutzkeData/frk_1_sample_1/concatenated_fastqs/Sample_mutant-1.concatenated.R2.fastq.gz	frk1.bam
+FRK2	./PutzkeData/frk_1_sample_2/fastq/frk1-2_ATTCAGAA-GGCTCTGA_AC9FN5ANXX_L008_001.R1.fastq.gz	./PutzkeData/frk_1_sample_2/fastq/frk1-2_ATTCAGAA-GGCTCTGA_AC9FN5ANXX_L008_001.R2.fastq.gz	frk2.bam
+FRK3	./PutzkeData/frk_1_sample_3/concatenated_fastqs/Sample_mutant-2.concatenated.R1.fastq.gz	./PutzkeData/frk_1_sample_3/concatenated_fastqs/Sample_mutant-2.concatenated.R2.fastq.gz	frk3.bam
+WT1	./PutzkeData/WT_sample_1/concatenated_fastqs/Sample_wildtype-1.concatenated.R1.fastq.gz	./PutzkeData/WT_sample_1/concatenated_fastqs/Sample_wildtype-1.concatenated.R2.fastq.gz	wt1.bam
+WT2	./PutzkeData/WT_sample_2/fastq/wildtype-2_TCTCGCGC-GGCTCTGA_AC9FN5ANXX_L008_001.R1.fastq.gz	./PutzkeData/WT_sample_2/fastq/wildtype-2_TCTCGCGC-GGCTCTGA_AC9FN5ANXX_L008_001.R2.fastq.gz	wt2.bam
+WT3	./PutzkeData/WT_sample_3/concatenated_fastqs/Sample_wildtype-3.concatenated.R1.fastq.gz	./PutzkeData/WT_sample_3/concatenated_fastqs/Sample_wildtype-3.concatenated.R2.fastq.gz	wt3.bam
+
+# Read in the targets file
+targets <- readTargets()
+
+# ran the alignment procedure for all the 6 files
+align(index="celegans_index", readfile1=targets$Filename1, readfile2=targets$Filename2, input_format="gzFASTQ", output_format="BAM", output_file=targets$OutputFile, unique=TRUE, indels=5 )
+
+# Downloaded annotation file for c elegans from ftp://ftplibrary(Rsubread).ensemblgenomes.org/pub/metazoa/release-34/gff3/caenorhabditis_elegans/
+# converted from gff3 to gtf format using the gffread packagelibrary(Rsubread)
+library(limma)
+library(Glimma)
+library(edgeR) from github (not an R package!)
+
+# Following command line run from terminal and NOT R to convert gff3 format to gtf format
+../gffread/gffread Caenorhabditis_elegans.WBcel235.34.gff3 -T -o Caenorhabditis_elegans.WBcel235.34.gtf
+
+# ran feature counts
+fc <- featureCounts(files=targets$OutputFile, isPairedEnd=TRUE,annot.ext="Caenorhabditis_elegans.WBcel235.34.gtf", isGTFAnnotationFile=TRUE)
+
+# Read feature counts into a DGEList object using the edgeR package function
+x <- DGEList(counts=fc$counts, genes=fc$annotation[,c("GeneID","Length")])
+samplenames <- c("frk1", "frk2", "frk3", "wt1", "wt2", "wt3" )
+colnames(x) <- samplenames
+group <- as.factor(c("FRK", "FRK", "FRK", "WT", "WT", "WT"))
+x$samples$group <- group
+lane <- as.factor( c("L002", "L008", "L002", "L002", "L008", "L002") )
+x$samples$lane <- lane
+
+# Filter out genes with low expression levels
+keep.exprs <- rowSums(cpm>1)>=3
+unfiltered_x <- x
+x <- x[keep.exprs,, keep.lib.sizes=FALSE]
+dim(x)
+
+# compute CPM and log(CPM) values
+cpm <- cpm(x)
+lcpm <- cpm(x, log=TRUE)
+
+# use the biomaRt package to access the ensembl database directly from R
+source("https://bioconductor.org/biocLite.R")
+biocLite("biomaRt")
+library("biomaRt")
+listMarts()
+ensembl=useMart("ensembl")
+listDatasets(ensembl)
+
+# choose the c elegans dataset and use a mart object called ensembl to access it
+ensembl = useMart("ensembl",dataset="celegans_gene_ensembl")
+
+# you can use filters to choose which values must match the genes from your rna sequences
+filters = listFilters(ensembl)
+filters[1:5,]
+
+# you can use attributes to pick which columns you want from the ensembl database
+attributes = listAttributes(ensembl)
+attributes[1:5,]
+library(Rsubread)
+library(limma)
+library(Glimma)
+library(edgeR)
+v <- voom(x, design, plot=TRUE)
+vfit <- lmFit(v, design)
+vfit <- contrasts.fit(vfit, contrasts=contr.matrix)
+efit <- eBayes(vfit)
+plotSA(efit)
+# Get the geneids out of our DGEList object so we can query against an the mart database for ontology
+# information
+# old way: geneids <- substring(rownames(x), 6, nchar(rownames(x)))
+geneids <- gsub(".*:","",rownames(x))
+
+# now, we ran a query on the c elegans using our ensembl mart object
+genes <- getBM( attributes=c('entrezgene', 'arrayexpress', 'chromosome_name'), filters='arrayexpress', values = geneids, mart = ensembl )
+
+# Remove duplicates
+genes <- genes[!duplicated(genes$entrezgene),]
+
+# Remove NA genes
+genes <- genes[genes[,1]!="NA",]
+
+# place initially filtered genes back into x data structure
+x$genes <- genes
+
+
+
+# Compare filtered and unfiltered data. Save in png file
+png(filename="data_counts.png")
+library(RColorBrewer)
+nsamples <- ncol(unfiltered_x)
+lcpm <- cpm(unfiltered_x, log=TRUE)
+col <- brewer.pal(nsamples, "Paired")
+par(mfrow=c(1,2))
+plot(density(lcpm[,1]), col=col[1], lwd=2, ylim=c(0,0.21), las=2,
+      main="", xlab="")
+title(main="A. Raw data", xlab="Log-cpm")
+abline(v=0, lty=3)
+for (i in 2:nsamples){
+ den <- density(lcpm[,i])
+ lines(den$x, den$y, col=col[i], lwd=2)
+}
+nsamples <- ncol(x)
+lcpm <- cpm(x, log=TRUE)
+plot(density(lcpm[,1]), col=col[1], lwd=2, ylim=c(0,0.21), las=2,
+      main="", xlab="")
+title(main="B. Filtered data", xlab="Log-cpm")
+abline(v=0, lty=3)
+for (i in 2:nsamples){
+   den <- density(lcpm[,i])
+   lines(den$x, den$y, col=col[i], lwd=2)
+}
+legend("topright", samplenames, text.col=col, bty="n")
+dev.off()
+
+# Calculate the normalzatiopn factors
+x <- calcNormFactors(x, method = "TMM")
+x$samples$norm.factors
+
+# Plot the normalization factors
+par(mfrow=c(1,2))
+lcpm <- cpm(x2, log=TRUE)
+boxplot(lcpm, las=2, col=col, main="")
+title(main="A. Example: Unnormalised data",ylab="Log-cpm")
+
+# Generate unsupervised cluster plots
+png(filename="Cluster_plots.png")
+lcpm <- cpm(x, log=TRUE)
+par(mfrow=c(1,2))
+col.group <- group
+levels(col.group) <- brewer.pal(nlevels(col.group), "Set1")
+col.group <- as.character(col.group)
+col.lane <- lane
+levels(col.lane) <- brewer.pal(nlevels(col.lane), "Set2")
+col.lane <- as.character(col.lane)
+plotMDS(lcpm, labels=group, col=col.group)
+title(main="A. Sample groups")
+plotMDS(lcpm, labels=lane, col=col.lane, dim=c(3,4))
+title(main="B. Sequencing lanes")
+dev.off()
+
+# generate interactive cluster plots
+library(Glimma)
+glMDSPlot(lcpm, labels=paste(group, lane, sep="_"), groups=x$samples[,c(1,4)], launch=FALSE)
+
+# Design the linear models for data fitting
+design <- model.matrix(~0+group+lane)
+colnames(design) <- gsub("group", "", colnames(design))
+design
+
+# Setup Limma to compare cell populations
+contr.matrix <- makeContrasts(
+FRKvsWT = FRK-WT,
+FRKvslaneL008 = FRK-laneL008,
+WTvslaneL008 = WT-laneL008,
+levels = colnames(design))
+contr.matrix
+
+# plot the mean variance trends
+v <- voom(x, design, plot=TRUE)
+
+# Fit the variance so it's not dependent on expression levels
+vfit <- lmFit(v, design)
+vfit <- contrasts.fit(vfit, contrasts=contr.matrix)
+efit <- eBayes(vfit)
+plotSA(efit)
+
+# up vs down regulated table summary for Differential Expressions
+summary(decideTests(efit))
+
+# up vs down regulated table summary for stricter Differential Expression
+summary(decideTests(efit))
+tfit <- treat(vfit, lfc=1)
+dt <- decideTests(tfit)
+summary(dt)
+FRK.vs.WT <- topTreat(tfit, coef=1, n=Inf)
+FRK.vs.laneL008 <- topTreat(tfit, coef=2, n=Inf)
+
+# differentially expressed genes
+de.common <- which(dt[,1]!=0 & dt[,2]!=0)
+length(de.common)
+vennDiagram(dt[,1:2], circle.col=c("turquoise", "salmon"))
+
+# generate different data sets
+FRK.vs.WT <- topTreat(tfit, coef=1, n=Inf)
+FRK.vs.laneL008 <- topTreat(tfit, coef=2, n=Inf)
+
+
+
+library(gplots)
+FRK.vs.WT.topgenes <- FRK.vs.WT$GeneID[1:20]
+i <- which(v$genes$GeneID %in% FRK.vs.WT.topgenes)
+mycol <- colorpanel(1000,"blue","white","red")
+heatmap.2(v$E[i,], scale="row",
+   labRow=v$genes$GeneID[i], labCol=group,
+   col=mycol, trace="none", density.info="none",
+   margin=c(4,18), lhei=c(2,10), dendrogram="column")
+
+
+
+
+summary(fc)
+dim(mycounts#counts)
+dim(mycounts$counts)
+dim(fc$counts)
+head(fc$annotation)
+fc$targets
+fc$stat
+write.table(fc$counts,file="frk_1_sample_1_counts.txt",sep="\t", quote=F,append=F)
+write.table(fc2$counts,file="frk_1_sample_2_counts.txt",sep="\t", quote=F,append=F)
+library(limma)
+library(Glimma)
+library(edgeR)
+
+
+# This is the command to ge the refseq id so that the keggrest can query for top genes
+genes <- getBM( attributes=c('entrezgene', 'refseq_ncrna', 'arrayexpress', 'chromosome_name'), filters='arrayexpress', values = geneids, mart = ensembl )
