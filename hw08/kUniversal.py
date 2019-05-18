@@ -42,11 +42,11 @@ def buildCycle(graph, nextNode):
 # find epicycles
 # walk the path to find a nodes that have unexplored edges
 def findEpicycles(workingCopy, edgeCount, path):
-    print('Edge count: {0}'.format(edgeCount))
+    #print('Edge count: {0}'.format(edgeCount))
     for ndx in range(0, edgeCount+1):
         # if a node in the cycle has an unexplored edge...
-        print('ndx = {0}, path len = {1}'.format(ndx, len(path)))
-        print('path: {0}'.format(path))
+        #print('ndx = {0}, path len = {1}'.format(ndx, len(path)))
+        #print('path: {0}'.format(path))
         node = path[ndx]
         if len(workingCopy[node]) > 0:
             # build a cycle starting from node
@@ -81,19 +81,19 @@ with open('kUniversal.txt', 'r') as infile:
         val = kmer[1:kLen]
         if (val != key):
             utilities.appendToDict(edges, key, val)
+        #utilities.appendToDict(edges, key, val)
         if val not in edges:
             edges[val] = []
         utilities.decrementDict(degrees, key)
         utilities.incrementDict(degrees, val)
-    print('edges: {0}'.format(edges))
+    #print('edges: {0}'.format(edges))
     
     #printEdges(edges)
 
-print('edges: {0}'.format(edges))
+#print('edges: {0}'.format(edges))
 workingCopy = copy.deepcopy(edges)
-print('workingCopy: {0}'.format(workingCopy))
+#print('workingCopy: {0}'.format(workingCopy))
 nextNode = choice(list(workingCopy.keys()))
-#nextNode = ('0','0','0','0','0','0','0','0')
 adjacentNodes = workingCopy[nextNode]
 
 # create the initial cycle:
@@ -103,16 +103,17 @@ path = buildCycle(workingCopy, nextNode)
 #for item in edges.items():
 #    edgeCount += len(item[1])
 
-edgeCount = 2**kLen - kLen
+edgeCount = 2**kLen - kLen - 1
 
 #print('path: {0}'.format(path))
-print('Edges in graph: {0}, edges in path: {1}'.format(edgeCount, len(path)-1))
+#print('Edges in graph: {0}, edges in path: {1}'.format(edgeCount, len(path)-1))
 path = findEpicycles(workingCopy, edgeCount, path)
 
 #print(adjacentNodes)     
 #print("Working copy: ", workingCopy)
 #printEdges(path)
-print('Edges in graph: {0}, edges in path: {1}'.format(edgeCount, len(path)-1))
+#print('Edges in graph: {0}, edges in path: {1}'.format(edgeCount, len(path)-1))
+print('Path: {0}'.format(path))
 output = buildStringFromPath(path)
 
 print(output)

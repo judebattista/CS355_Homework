@@ -1,0 +1,14 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# Ignore the final project. Data files too large
+Final/
+
+# Ignore git swap files
+*.swp
+
+# Ignore any ~vim dirs
+*~vim/
+
